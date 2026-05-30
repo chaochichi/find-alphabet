@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Find Alphabet — เกมตารางเดินทางตามหาตัวอักษร</title>
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Itim&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue-light: #74c6ff;
+    --blue-mid:   #378add;
+    --blue-dark:  #185fa5;
+    --blue-deep:  #042c53;
+    --green-light:#c0dd97;
+    --green-mid:  #639922;
+    --green-dark: #3b6d11;
+    --green-deep: #173404;
+    --amber-light:#faeeda;
+    --amber-mid:  #ef9f27;
+    --amber-dark: #ba7517;
+    --amber-deep: #412402;
+    --pink-light: #f4c0d1;
+    --pink-mid:   #d4537e;
+    --pink-dark:  #993556;
+    --pink-deep:  #4b1528;
+    --red-light:  #fcebeb;
+    --red-mid:    #e24b4a;
+    --red-dark:   #a32d2d;
+    --red-deep:   #501313;
+    --sky:        #d0e8ff;
+    --bg:         #f0f8ff;
+    --card:       #ffffff;
+    --shadow:     rgba(0,0,0,0.15);
+  }
+
+  body {
+    font-family: 'Mitr', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    background-image:
+      radial-gradient(circle at 15% 15%, #d0eeff55 0%, transparent 50%),
+      radial-gradient(circle at 85% 85%, #ffe0f055 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, #eaffdd33 0%, transparent 70%);
+  }
+
+  /* ===== HEADER ===== */
+  .game-header {
+    text-align: center;
+    margin-bottom: 16px;
+    animation: bounceIn .6s cubic-bezier(.36,.07,.19,.97);
+  }
+  .game-title {
+    font-size: clamp(26px, 6vw, 40px);
+    font-weight: 600;
+    color: var(--blue-dark);
+    text-shadow: 3px 3px 0 #ffd166, 4px 4px 0 var(--amber-dark);
+    letter-spacing: 1px;
+    line-height: 1.1;
+  }
+  .game-subtitle {
+    font-size: clamp(12px, 2.5vw, 15px);
+    color: #555;
+    margin-top: 4px;
+  }
+
+  /* ===== SCREENS ===== */
+  .screen { display: none; width: 100%; max-width: 680px; }
+  .screen.active { display: block; animation: fadeSlide .3s ease; }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes bounceIn {
+    0%   { transform: scale(.8); opacity: 0; }
+    60%  { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes winPop {
+    0%   { transform: scale(.7) rotate(-5deg); opacity: 0; }
+    60%  { transform: scale(1.1) rotate(2deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25%      { transform: translateX(-8px); }
+    75%      { transform: translateX(8px); }
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== BACK BUTTON ===== */
+  .back-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #fff; border: 2px solid #ddd; border-radius: 14px;
+    padding: 8px 18px; font-family: 'Mitr', sans-serif;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    color: #444; margin-bottom: 14px;
+    transition: background .15s, border-color .15s, transform .1s;
+    box-shadow: 0 3px 0 #ccc;
+  }
+  .back-btn:hover { background: #f5f5f5; border-color: #bbb; transform: translateY(-1px); }
+  .back-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #ccc; }
+
+  /* ===== MENU SCREEN ===== */
+  .menu-label { text-align: center; font-size: 16px; color: #555; margin-bottom: 14px; }
+  .menu-cats { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+  .cat-btn {
+    width: 160px; height: 130px; border-radius: 24px; border: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'Mitr', sans-serif; font-size: 17px; font-weight: 600;
+    gap: 8px; transition: transform .2s, box-shadow .2s;
+    position: relative; overflow: hidden;
+  }
+  .cat-btn::before {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(255,255,255,0.15);
+    border-radius: inherit; opacity: 0;
+    transition: opacity .2s;
+  }
+  .cat-btn:hover { transform: translateY(-5px); }
+  .cat-btn:hover::before { opacity: 1; }
+  .cat-btn:active { transform: translateY(2px); }
+
+  .cat-btn.cons {
+    background: linear-gradient(145deg, #a8d8ff, var(--blue-mid));
+    color: var(--blue-deep);
+    box-shadow: 0 8px 0 var(--blue-dark), 0 10px 20px rgba(55,138,221,.3);
+  }
+  .cat-btn.vowel {
+    background: linear-gradient(145deg, #f9d0df, var(--pink-mid));
+    color: var(--pink-deep);
+    box-shadow: 0 8px 0 var(--pink-dark), 0 10px 20px rgba(212,83,126,.3);
+  }
+  .cat-btn.num {
+    background: linear-gradient(145deg, #d4eeaa, var(--green-mid));
+    color: var(--green-deep);
+    box-shadow: 0 8px 0 var(--green-dark), 0 10px 20px rgba(99,153,34,.3);
+  }
+  .cat-icon { font-size: 44px; line-height: 1; animation: float 3s ease-in-out infinite; }
+  .cat-btn.vowel .cat-icon { animation-delay: .5s; }
+  .cat-btn.num .cat-icon { animation-delay: 1s; }
+
+  /* ===== LEVEL SCREEN ===== */
+  .level-label { text-align: center; font-size: 16px; color: #555; margin-bottom: 14px; }
+  .cat-badge {
+    display: inline-block; padding: 4px 16px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; margin-bottom: 14px;
+    background: var(--blue-light); color: var(--blue-deep);
+  }
+  .level-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+  .level-btn {
+    width: 150px; height: 130px; border-radius: 22px; border: none; cursor: pointer;
+    font-family: 'Mitr', sans-serif; font-size: 15px; font-weight: 600;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; transition: transform .2s, box-shadow .2s;
+  }
+  .level-btn:hover { transform: translateY(-4px); }
+  .level-btn:active { transform: translateY(2px); }
+
+  .lv1 {
+    background: linear-gradient(145deg, #d8f0b0, var(--green-light));
+    color: var(--green-deep);
+    box-shadow: 0 7px 0 var(--green-mid), 0 10px 20px rgba(99,153,34,.2);
+  }
+  .lv2 {
+    background: linear-gradient(145deg, #fde8bb, var(--amber-mid));
+    color: var(--amber-deep);
+    box-shadow: 0 7px 0 var(--amber-dark), 0 10px 20px rgba(239,159,39,.2);
+  }
+  .lv3 {
+    background: linear-gradient(145deg, #ffc8c8, var(--red-mid));
+    color: var(--red-deep);
+    box-shadow: 0 7px 0 var(--red-dark), 0 10px 20px rgba(226,75,74,.2);
+  }
+  .lv-icon { font-size: 30px; }
+  .lv-name { font-size: 16px; }
+  .lv-sub { font-size: 11px; font-weight: 400; opacity: .75; text-align: center; line-height: 1.3; }
+
+  /* ===== GAME SCREEN ===== */
+  .game-info {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px; margin-bottom: 12px;
+  }
+  .target-box {
+    background: #fff8e1; border: 2.5px dashed var(--amber-dark);
+    border-radius: 16px; padding: 8px 20px;
+    font-size: 15px; color: var(--amber-deep); font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .target-char {
+    font-size: 36px; color: #c85000; font-weight: 600;
+    line-height: 1; display: inline-block;
+    animation: float 2s ease-in-out infinite;
+  }
+  .move-box {
+    background: var(--blue-light); border-radius: 14px;
+    padding: 8px 16px; font-size: 14px; color: var(--blue-deep); font-weight: 500;
+  }
+
+  /* ===== GRID ===== */
+  .grid-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+  .grid {
+    display: grid; gap: 5px;
+    padding: 12px;
+    background: linear-gradient(145deg, #b8dcff, var(--sky));
+    border-radius: 22px;
+    box-shadow: inset 0 4px 10px rgba(0,0,0,.12), 0 6px 20px rgba(55,138,221,.2);
+    border: 3px solid rgba(255,255,255,.7);
+  }
+
+  .cell {
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Mitr', sans-serif; font-weight: 600;
+    transition: transform .1s, background .15s;
+    position: relative; user-select: none;
+    border: 2px solid rgba(255,255,255,.5);
+  }
+  .cell-empty {
+    background: rgba(255,255,255,.75);
+    color: var(--blue-dark);
+  }
+  .cell-obstacle {
+    background: linear-gradient(145deg, #d4c8a8, #b0a080);
+    border-color: rgba(255,255,255,.3);
+  }
+  .cell-char {
+    background: rgba(255,255,255,.75);
+    color: var(--blue-mid);
+    font-weight: 600;
+  }
+  .cell-target {
+    background: linear-gradient(145deg, #fff8d0, #ffe88a);
+    border: 2.5px dashed var(--amber-dark);
+    animation: float 2s ease-in-out infinite;
+  }
+  .cell-player {
+    background: linear-gradient(145deg, var(--blue-light), var(--blue-mid));
+    border: 2.5px solid var(--blue-dark);
+    box-shadow: 0 5px 0 var(--blue-dark);
+    animation: none;
+  }
+  .cell-player.on-target {
+    background: linear-gradient(145deg, var(--green-light), var(--green-mid));
+    border-color: var(--green-dark);
+    box-shadow: 0 5px 0 var(--green-dark);
+  }
+  .cell-path {
+    background: rgba(180,220,255,.6);
+  }
+
+  .player-icon { font-size: 130%; line-height: 1; }
+  .obs-icon    { font-size: 130%; line-height: 1; }
+  .target-icon { font-size: 110%; line-height: 1; font-family: 'Mitr', sans-serif; font-weight: 600; color: #c85000; }
+  .char-icon   { font-size: 100%; line-height: 1; font-family: 'Mitr', sans-serif; }
+
+  /* ===== ARROW QUEUE ===== */
+  .queue-label { font-size: 13px; color: #666; margin-bottom: 6px; }
+  .arrow-queue {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    min-height: 50px; background: rgba(255,255,255,.8);
+    border-radius: 16px; padding: 8px 12px;
+    margin-bottom: 12px; align-items: center;
+    border: 2px solid rgba(55,138,221,.2);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.06);
+  }
+  .queue-hint { font-size: 12px; color: #aaa; font-style: italic; }
+  .queued-arrow {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(145deg, var(--blue-light), var(--blue-mid));
+    color: var(--blue-deep); font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none; font-family: 'Mitr', sans-serif;
+    box-shadow: 0 3px 0 var(--blue-dark);
+    transition: transform .1s, box-shadow .1s, background .1s;
+  }
+  .queued-arrow:hover {
+    background: linear-gradient(145deg, #ffc8c8, var(--red-mid));
+    color: var(--red-deep); box-shadow: 0 3px 0 var(--red-dark);
+  }
+  .queued-arrow:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--blue-dark); }
+
+  /* ===== ARROW PAD ===== */
+  .arrow-pad { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 14px; }
+  .arrow-row  { display: flex; gap: 8px; }
+
+  .arr-btn {
+    border-radius: 16px; border: none; cursor: pointer; font-size: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Mitr', sans-serif;
+    background: linear-gradient(145deg, var(--blue-light), var(--blue-mid));
+    color: var(--blue-deep);
+    box-shadow: 0 6px 0 var(--blue-dark), 0 8px 16px rgba(55,138,221,.3);
+    transition: transform .12s, box-shadow .12s;
+    touch-action: manipulation;
+  }
+  .arr-btn:hover { transform: translateY(-3px); box-shadow: 0 9px 0 var(--blue-dark), 0 12px 20px rgba(55,138,221,.3); }
+  .arr-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--blue-dark); }
+
+  /* ===== ACTION BUTTONS ===== */
+  .action-btns { display: flex; gap: 12px; justify-content: center; margin-bottom: 14px; flex-wrap: wrap; }
+
+  .run-btn, .reset-btn {
+    border-radius: 18px; border: none; cursor: pointer;
+    font-family: 'Mitr', sans-serif; font-size: 16px; font-weight: 600;
+    padding: 12px 28px;
+    transition: transform .12s, box-shadow .12s;
+  }
+  .run-btn {
+    background: linear-gradient(145deg, #aadd66, var(--green-mid));
+    color: var(--green-deep);
+    box-shadow: 0 6px 0 var(--green-dark), 0 8px 16px rgba(99,153,34,.25);
+  }
+  .run-btn:hover  { transform: translateY(-3px); box-shadow: 0 9px 0 var(--green-dark), 0 12px 20px rgba(99,153,34,.3); }
+  .run-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--green-dark); }
+
+  .reset-btn {
+    background: linear-gradient(145deg, var(--pink-light), var(--pink-mid));
+    color: var(--pink-deep);
+    box-shadow: 0 6px 0 var(--pink-dark), 0 8px 16px rgba(212,83,126,.25);
+  }
+  .reset-btn:hover  { transform: translateY(-3px); box-shadow: 0 9px 0 var(--pink-dark); }
+  .reset-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--pink-dark); }
+
+  /* ===== MESSAGE BOX ===== */
+  .msg-box {
+    display: none; text-align: center; border-radius: 18px;
+    padding: 14px 20px; font-size: 17px; font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .msg-box.show { display: block; }
+  .msg-win  {
+    background: linear-gradient(145deg, #d8f0b0, #eaffd0);
+    color: var(--green-deep); border: 2.5px solid var(--green-mid);
+    animation: winPop .5s cubic-bezier(.36,.07,.19,.97);
+  }
+  .msg-wall {
+    background: var(--red-light); color: var(--red-deep);
+    border: 2.5px solid var(--red-mid);
+    animation: shake .4s ease;
+  }
+  .msg-debug {
+    background: var(--amber-light); color: var(--amber-deep);
+    border: 2.5px solid var(--amber-mid);
+    animation: shake .4s ease;
+  }
+  .msg-miss {
+    background: #f0f0ff; color: #334;
+    border: 2.5px solid #aab;
+    animation: shake .3s ease;
+  }
+
+  /* ===== NEXT BUTTON ===== */
+  .next-btn {
+    padding: 12px 32px; border-radius: 18px; border: none; cursor: pointer;
+    font-family: 'Mitr', sans-serif; font-size: 16px; font-weight: 600;
+    background: linear-gradient(145deg, var(--blue-light), var(--blue-mid));
+    color: var(--blue-deep);
+    box-shadow: 0 6px 0 var(--blue-dark), 0 8px 16px rgba(55,138,221,.3);
+    transition: transform .12s, box-shadow .12s; margin-top: 8px;
+  }
+  .next-btn:hover  { transform: translateY(-3px); }
+  .next-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--blue-dark); }
+
+  .instruct {
+    font-size: 12px; color: #888; text-align: center; margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  /* ===== CONFETTI ===== */
+  .confetti-wrap { position: fixed; inset: 0; pointer-events: none; z-index: 9999; overflow: hidden; }
+  .confetti-piece {
+    position: absolute; width: 10px; height: 10px; border-radius: 2px;
+    animation: confettiFall linear forwards;
+    top: -20px;
+  }
+  @keyframes confettiFall {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ===== STARS ===== */
+  .stars-wrap { display: flex; justify-content: center; gap: 6px; margin: 6px 0; }
+  .star { font-size: 28px; opacity: .3; transition: opacity .3s, transform .3s; }
+  .star.lit { opacity: 1; transform: scale(1.2); animation: winPop .4s ease; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 520px) {
+    .cat-btn { width: 130px; height: 110px; }
+    .level-btn { width: 130px; height: 110px; }
+    .arr-btn { font-size: 22px; }
+    body { padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="game-header">
+  <div class="game-title">🌟 Find Alphabet 🌟</div>
+  <div class="game-subtitle">เกมตารางเดินทางตามหาตัวอักษร — สำหรับเด็กปฐมวัย</div>
+</div>
+
+<!-- MENU SCREEN -->
+<div id="menuScreen" class="screen active">
+  <p class="menu-label">🎯 เลือกหมวดที่ต้องการเรียนรู้</p>
+  <div class="menu-cats">
+    <button class="cat-btn cons" onclick="selectCat('cons')">
+      <span class="cat-icon">ก</span>
+      พยัญชนะ
+    </button>
+    <button class="cat-btn vowel" onclick="selectCat('vowel')">
+      <span class="cat-icon">า</span>
+      สระ
+    </button>
+    <button class="cat-btn num" onclick="selectCat('num')">
+      <span class="cat-icon">๑</span>
+      ตัวเลข
+    </button>
+  </div>
+</div>
+
+<!-- LEVEL SCREEN -->
+<div id="levelScreen" class="screen">
+  <button class="back-btn" onclick="showScreen('menuScreen')">← กลับ</button>
+  <div style="text-align:center">
+    <div class="cat-badge" id="catBadge">พยัญชนะ</div>
+  </div>
+  <p class="level-label">⭐ เลือกระดับความยาก</p>
+  <div class="level-btns">
+    <button class="level-btn lv1" onclick="startGame(1)">
+      <span class="lv-icon">⭐</span>
+      <span class="lv-name">ระดับ 1</span>
+      <span class="lv-sub">ตาราง 4×4<br>ไม่มีอุปสรรค</span>
+    </button>
+    <button class="level-btn lv2" onclick="startGame(2)">
+      <span class="lv-icon">⭐⭐</span>
+      <span class="lv-name">ระดับ 2</span>
+      <span class="lv-sub">ตาราง 6×6<br>มีอุปสรรค 3 จุด</span>
+    </button>
+    <button class="level-btn lv3" onclick="startGame(3)">
+      <span class="lv-icon">⭐⭐⭐</span>
+      <span class="lv-name">ระดับ 3</span>
+      <span class="lv-sub">ตาราง 8×8<br>มีอุปสรรค 6 จุด</span>
+    </button>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="gameScreen" class="screen">
+  <button class="back-btn" onclick="showScreen('levelScreen')">← กลับ</button>
+
+  <div class="game-info">
+    <div class="target-box">
+      หาตัวอักษร: <span class="target-char" id="targetChar">ก</span>
+    </div>
+    <div class="move-box">📋 คำสั่ง: <strong id="moveCount">0</strong></div>
+  </div>
+
+  <div class="grid-wrap">
+    <div class="grid" id="gameGrid"></div>
+  </div>
+
+  <div class="queue-label">🗂️ บัตรลูกศรที่วาง (คลิกเพื่อลบ):</div>
+  <div class="arrow-queue" id="arrowQueue">
+    <span class="queue-hint">— ยังไม่มีคำสั่ง —</span>
+  </div>
+
+  <div class="arrow-pad">
+    <div class="arrow-row">
+      <button class="arr-btn" style="width:64px;height:64px" onclick="addArrow('up')" title="ขึ้น">↑</button>
+    </div>
+    <div class="arrow-row">
+      <button class="arr-btn" style="width:64px;height:64px" onclick="addArrow('left')" title="ซ้าย">←</button>
+      <button class="arr-btn" style="width:64px;height:64px" onclick="addArrow('down')" title="ลง">↓</button>
+      <button class="arr-btn" style="width:64px;height:64px" onclick="addArrow('right')" title="ขวา">→</button>
+    </div>
+  </div>
+
+  <div class="action-btns">
+    <button class="run-btn" onclick="runCommands()">▶ เดินตามคำสั่ง</button>
+    <button class="reset-btn" onclick="resetPosition()">↺ เริ่มใหม่</button>
+  </div>
+
+  <div class="msg-box" id="msgBox"></div>
+  <div class="stars-wrap" id="starsWrap" style="display:none">
+    <span class="star" id="s1">⭐</span>
+    <span class="star" id="s2">⭐</span>
+    <span class="star" id="s3">⭐</span>
+  </div>
+  <div style="text-align:center" id="nextArea"></div>
+  <p class="instruct">กดปุ่มลูกศรเพื่อวางคำสั่ง → กด "เดินตามคำสั่ง" ให้จรวดเดิน<br>ถ้าเจออุปสรรค ให้แก้ไขคำสั่ง (Debugging) แล้วลองใหม่!</p>
+</div>
+
+<div class="confetti-wrap" id="confettiWrap"></div>
+
+<script>
+const CONTENT = {
+  cons: {
+    label: 'พยัญชนะ',
+    items: ['ก','ข','ค','ง','จ','ฉ','ช','ซ','ญ','ด','ต','ถ','ท','น','บ','ป','ผ','ฝ','พ','ฟ','ภ','ม','ย','ร','ล','ว','ส','ห','อ','ฮ']
+  },
+  vowel: {
+    label: 'สระ',
+    items: ['า','ิ','ี','ึ','ื','ุ','ู','เ','แ','โ','ใ','ไ','็','่','้','๊','๋','ำ','วว','ยย']
+  },
+  num: {
+    label: 'ตัวเลข',
+    items: ['๑','๒','๓','๔','๕','๖','๗','๘','๙','๐','1','2','3','4','5','6','7','8','9','0']
+  }
+};
+
+const OBS = ['🪨','🌿','🐸','🌵','🐊','🦔','🍄','🌙'];
+const CONFETTI_COLORS = ['#ff6b6b','#ffd166','#06d6a0','#118ab2','#ffbe0b','#fb5607','#ff006e','#8338ec','#3a86ff'];
+
+let currentCat = 'cons';
+let currentLevel = 1;
+let gridSize = 4;
+let playerPos = {r:0,c:0};
+let startPos  = {r:0,c:0};
+let targetPos = {r:0,c:0};
+let obstacles = [];
+let charPositions = [];
+let arrowQueue = [];
+let targetChar = '';
+let isRunning = false;
+let roundMoves = 0;
+
+const DIRS = {up:{dr:-1,dc:0},down:{dr:1,dc:0},left:{dr:0,dc:-1},right:{dr:0,dc:1}};
+const ARR_SYM = {up:'↑',down:'↓',left:'←',right:'→'};
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function selectCat(cat) {
+  currentCat = cat;
+  document.getElementById('catBadge').textContent = CONTENT[cat].label;
+  showScreen('levelScreen');
+}
+
+function startGame(level) {
+  currentLevel = level;
+  gridSize = level === 1 ? 4 : level === 2 ? 6 : 8;
+  showScreen('gameScreen');
+  initRound();
+}
+
+function randInt(n) { return Math.floor(Math.random() * n); }
+
+function initRound() {
+  arrowQueue = [];
+  roundMoves = 0;
+  isRunning = false;
+
+  const used = new Set();
+  const total = gridSize * gridSize;
+  const obsCount = currentLevel === 1 ? 0 : currentLevel === 2 ? 3 : 6;
+  const charCount = Math.min(6, Math.floor(total * 0.25));
+
+  function randFree() {
+    let pos, key, tries = 0;
+    do { pos = {r:randInt(gridSize), c:randInt(gridSize)}; key = pos.r*gridSize+pos.c; tries++; }
+    while (used.has(key) && tries < 200);
+    used.add(key); return pos;
+  }
+
+  startPos = randFree();
+  playerPos = {...startPos};
+
+  const pool = [...CONTENT[currentCat].items].sort(() => Math.random()-.5);
+  charPositions = [];
+  for (let i = 0; i < charCount; i++) {
+    const pos = randFree();
+    charPositions.push({pos, ch: pool[i % pool.length]});
+  }
+
+  const tIdx = randInt(charPositions.length);
+  targetChar = charPositions[tIdx].ch;
+  targetPos  = charPositions[tIdx].pos;
+
+  obstacles = [];
+  const obsIcons = [...OBS].sort(() => Math.random()-.5);
+  for (let i = 0; i < obsCount; i++) {
+    const pos = randFree();
+    obstacles.push({...pos, icon: obsIcons[i % obsIcons.length]});
+  }
+
+  document.getElementById('targetChar').textContent = targetChar;
+  document.getElementById('moveCount').textContent = 0;
+  document.getElementById('msgBox').className = 'msg-box';
+  document.getElementById('msgBox').textContent = '';
+  document.getElementById('nextArea').innerHTML = '';
+  document.getElementById('starsWrap').style.display = 'none';
+
+  renderGrid();
+  renderQueue();
+}
+
+function cellSize() {
+  return currentLevel === 1 ? 76 : currentLevel === 2 ? 64 : 50;
+}
+
+function renderGrid() {
+  const grid = document.getElementById('gameGrid');
+  const sz = cellSize();
+  grid.style.gridTemplateColumns = `repeat(${gridSize}, ${sz}px)`;
+  grid.innerHTML = '';
+
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.style.width  = sz + 'px';
+      cell.style.height = sz + 'px';
+      cell.style.fontSize = Math.round(sz * 0.38) + 'px';
+
+      const isPlayer = r === playerPos.r && c === playerPos.c;
+      const isTarget = r === targetPos.r && c === targetPos.c;
+      const obs = obstacles.find(o => o.r === r && o.c === c);
+      const charH = charPositions.find(cp => cp.pos.r === r && cp.pos.c === c);
+
+      if (isPlayer && isTarget) {
+        cell.classList.add('cell-player', 'on-target');
+        cell.innerHTML = '<span class="player-icon">🚀</span>';
+      } else if (isPlayer) {
+        cell.classList.add('cell-player');
+        cell.innerHTML = '<span class="player-icon">🚀</span>';
+      } else if (obs) {
+        cell.classList.add('cell-obstacle');
+        cell.innerHTML = `<span class="obs-icon">${obs.icon}</span>`;
+      } else if (isTarget) {
+        cell.classList.add('cell-target');
+        cell.innerHTML = `<span class="target-icon">${targetChar}</span>`;
+      } else if (charH) {
+        cell.classList.add('cell-char');
+        cell.innerHTML = `<span class="char-icon">${charH.ch}</span>`;
+      } else {
+        cell.classList.add('cell-empty');
+      }
+
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function renderQueue() {
+  const qDiv = document.getElementById('arrowQueue');
+  qDiv.innerHTML = '';
+  if (arrowQueue.length === 0) {
+    qDiv.innerHTML = '<span class="queue-hint">— ยังไม่มีคำสั่ง —</span>';
+    return;
+  }
+  arrowQueue.forEach((dir, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'queued-arrow';
+    btn.textContent = ARR_SYM[dir];
+    btn.title = 'คลิกเพื่อลบ';
+    btn.onclick = () => { arrowQueue.splice(i, 1); document.getElementById('moveCount').textContent = arrowQueue.length; renderQueue(); };
+    qDiv.appendChild(btn);
+  });
+}
+
+function addArrow(dir) {
+  if (isRunning) return;
+  arrowQueue.push(dir);
+  document.getElementById('moveCount').textContent = arrowQueue.length;
+  renderQueue();
+}
+
+async function runCommands() {
+  if (isRunning || arrowQueue.length === 0) return;
+  isRunning = true;
+  document.getElementById('msgBox').className = 'msg-box';
+  document.getElementById('nextArea').innerHTML = '';
+  document.getElementById('starsWrap').style.display = 'none';
+
+  let hitWall = false, hitObs = false, obsIcon = '';
+
+  for (let i = 0; i < arrowQueue.length; i++) {
+    const {dr,dc} = DIRS[arrowQueue[i]];
+    const nr = playerPos.r + dr;
+    const nc = playerPos.c + dc;
+
+    if (nr < 0 || nr >= gridSize || nc < 0 || nc >= gridSize) {
+      hitWall = true; break;
+    }
+    const foundObs = obstacles.find(o => o.r === nr && o.c === nc);
+    if (foundObs) { hitObs = true; obsIcon = foundObs.icon; break; }
+
+    playerPos = {r:nr, c:nc};
+    renderGrid();
+    await sleep(280);
+  }
+
+  roundMoves = arrowQueue.length;
+
+  if (hitWall) {
+    showMsg(`ชนกำแพงแล้ว! 🧱 ลองแก้คำสั่งใหม่นะ`, 'wall');
+  } else if (hitObs) {
+    showMsg(`เจออุปสรรค ${obsIcon}! แก้ไขบัตรลูกศรใหม่ได้เลย (Debugging)`, 'debug');
+  } else if (playerPos.r === targetPos.r && playerPos.c === targetPos.c) {
+    showMsg(`🎉 You Win! เจอตัวอักษร "${targetChar}" แล้ว! เก่งมากเลย! 🚀`, 'win');
+    showStars();
+    launchConfetti();
+    setTimeout(showNextBtn, 600);
+  } else {
+    showMsg(`ยังไม่ถึงเป้าหมาย "${targetChar}" ลองวางคำสั่งใหม่อีกครั้งนะ 🤔`, 'miss');
+  }
+  isRunning = false;
+}
+
+function showMsg(txt, type) {
+  const box = document.getElementById('msgBox');
+  box.textContent = txt;
+  box.className = 'msg-box show msg-' + type;
+}
+
+function showStars() {
+  const sw = document.getElementById('starsWrap');
+  sw.style.display = 'flex';
+  const stars = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3')];
+  stars.forEach(s => s.classList.remove('lit'));
+  const count = roundMoves <= gridSize ? 3 : roundMoves <= gridSize*2 ? 2 : 1;
+  setTimeout(() => { if (count >= 1) stars[0].classList.add('lit'); }, 100);
+  setTimeout(() => { if (count >= 2) stars[1].classList.add('lit'); }, 300);
+  setTimeout(() => { if (count >= 3) stars[2].classList.add('lit'); }, 500);
+}
+
+function showNextBtn() {
+  document.getElementById('nextArea').innerHTML =
+    `<button class="next-btn" onclick="initRound()">ต่อไป ▶</button>`;
+}
+
+function resetPosition() {
+  if (isRunning) return;
+  playerPos = {...startPos};
+  arrowQueue = [];
+  document.getElementById('moveCount').textContent = 0;
+  document.getElementById('msgBox').className = 'msg-box';
+  document.getElementById('nextArea').innerHTML = '';
+  document.getElementById('starsWrap').style.display = 'none';
+  renderGrid();
+  renderQueue();
+}
+
+function launchConfetti() {
+  const wrap = document.getElementById('confettiWrap');
+  wrap.innerHTML = '';
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.left = Math.random() * 100 + 'vw';
+    el.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+    el.style.width  = (6 + Math.random() * 8) + 'px';
+    el.style.height = (6 + Math.random() * 8) + 'px';
+    el.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
+    const dur = 1.5 + Math.random() * 2;
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay    = Math.random() * .8 + 's';
+    wrap.appendChild(el);
+  }
+  setTimeout(() => { wrap.innerHTML = ''; }, 4000);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+initRound();
+</script>
+</body>
+</html>
